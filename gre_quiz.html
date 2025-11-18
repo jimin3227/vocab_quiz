@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>GRE 단어 퀴즈 (객관식)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 720px;
+      margin: 30px auto;
+      padding: 0 16px 40px;
+      line-height: 1.6;
+      background: #f9fafb;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-top: 16px;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e5e7eb;
+    }
+    textarea {
+      width: 100%;
+      height: 140px;
+      box-sizing: border-box;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      resize: vertical;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    label {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    input[type="number"] {
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #111827;
+      color: white;
+      transition: transform 0.05s ease, box-shadow 0.05s ease, opacity 0.2s ease;
+      white-space: nowrap;
+    }
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+      box-shadow: none;
+    }
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(15, 23, 42, 0.25);
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .row > * {
+      flex: 1;
+      min-width: 0;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .muted {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .question-word {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .feedback {
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .feedback.correct {
+      color: #16a34a;
+    }
+    .feedback.incorrect {
+      color: #dc2626;
+    }
+    .score {
+      font-size: 14px;
+      color: #4b5563;
+    }
+    .choice-btn {
+      width: 100%;
+      text-align: left;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      color: #111827;
+      margin-top: 8px;
+      font-size: 14px;
+      white-space: normal;
+    }
+    .choice-btn:hover:not(.disabled) {
+      background: #eef2ff;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.2);
+      transform: translateY(-1px);
+    }
+    .choice-btn.disabled {
+      cursor: default;
+      opacity: 0.9;
+      box-shadow: none;
+      transform: none;
+    }
+    .choice-btn.correct {
+      background: #ecfdf3;
+      border-color: #22c55e;
+      color: #166534;
+    }
+    .choice-btn.wrong {
+      background: #fef2f2;
+      border-color: #ef4444;
+      color: #b91c1c;
+    }
+    .wrong-list {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #374151;
+      max-height: 260px;
+      overflow-y: auto;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 8px;
+    }
+    .wrong-item {
+      margin-bottom: 6px;
+    }
+    .wrong-item span.word {
+      font-weight: 600;
+    }
+    .wrong-item span.correct {
+      color: #16a34a;
+    }
+    .wrong-item span.selected {
+      color: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <h1>📚 GRE 단어 퀴즈 (객관식)</h1>
+  <div class="muted">엑셀에서 단어/뜻을 복사해 붙여넣고, 4지선다 객관식 + 오답노트까지 자동으로 만들어보세요.</div>
+
+  <!-- 데이터 입력 카드 -->
+  <div class="card">
+    <label for="dataInput">1️⃣ 엑셀에서 단어와 뜻을 복사해서 여기에 붙여넣기 (A열=단어, B열=뜻)</label>
+    <textarea id="dataInput" placeholder="예시)
+ascetic    금욕적인
+assuage    완화하다
+audacious  대담한"></textarea>
+
+    <div class="row" style="margin-top: 10px;">
+      <button id="loadBtn">단어 불러오기</button>
+      <div class="muted" id="wordCountInfo">아직 단어를 불러오지 않았어요.</div>
+    </div>
+
+    <div class="row" style="margin-top: 16px;">
+      <div>
+        <label for="questionCount">2️⃣ 한 세트에 풀 문제 개수</label>
+        <input type="number" id="questionCount" min="1" value="30" />
+      </div>
+      <div style="flex: 0 0 auto; align-self: flex-end;">
+        <button id="startBtn">🎯 퀴즈 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 퀴즈 카드 -->
+  <div class="card" id="quizCard" style="display: none; margin-top: 20px;">
+    <div class="row" style="margin-bottom: 6px;">
+      <div class="badge" id="progressBadge">문제 0 / 0</div>
+      <div class="score" id="scoreInfo" style="text-align: right;"></div>
+    </div>
+
+    <div class="question-word" id="questionWord">단어</div>
+    <div class="muted" style="margin-bottom: 6px;">뜻을 고르세요 (4지선다)</div>
+
+    <div id="optionsContainer"></div>
+
+    <div class="feedback" id="feedbackArea"></div>
+
+    <div class="row" style="margin-top: 12px;">
+      <button id="nextBtn" class="secondary" disabled>다음 문제</button>
+    </div>
+  </div>
+
+  <!-- 결과 + 오답노트 카드 -->
+  <div class="card" id="resultCard" style="display: none; margin-top: 20px;">
+    <h2>🎉 세트 종료!</h2>
+    <p id="resultText"></p>
+
+    <div id="wrongNoteContainer" style="margin-top: 12px; display: none;">
+      <div class="row" style="align-items: center; margin-bottom: 4px;">
+        <div style="font-weight: 600; font-size: 14px;">📝 오답노트</div>
+        <div style="flex: 0 0 auto; text-align: right;">
+          <button id="copyWrongBtn" class="secondary">오답노트 복사하기</button>
+        </div>
+      </div>
+      <div class="wrong-list" id="wrongList"></div>
+    </div>
+
+    <div class="row" style="margin-top: 14px;">
+      <button id="restartBtn">🔁 다시 풀기</button>
+    </div>
+  </div>
+
+  <script>
+    const NUM_CHOICES = 4; // 보기 개수 (4지선다)
+
+    let allWords = [];   // {word, meaning}
+    let quizList = [];   // 이번 세트 문제들
+    let currentIndex = 0;
+    let score = 0;
+    let total = 0;
+    let awaitingAnswer = true;
+    let wrongAnswers = []; // {word, correct, selected}
+
+    const dataInput = document.getElementById("dataInput");
+    const loadBtn = document.getElementById("loadBtn");
+    const wordCountInfo = document.getElementById("wordCountInfo");
+    const questionCountInput = document.getElementById("questionCount");
+    const startBtn = document.getElementById("startBtn");
+
+    const quizCard = document.getElementById("quizCard");
+    const questionWord = document.getElementById("questionWord");
+    const optionsContainer = document.getElementById("optionsContainer");
+    const feedbackArea = document.getElementById("feedbackArea");
+    const nextBtn = document.getElementById("nextBtn");
+    const progressBadge = document.getElementById("progressBadge");
+    const scoreInfo = document.getElementById("scoreInfo");
+
+    const resultCard = document.getElementById("resultCard");
+    const resultText = document.getElementById("resultText");
+    const wrongNoteContainer = document.getElementById("wrongNoteContainer");
+    const wrongList = document.getElementById("wrongList");
+    const copyWrongBtn = document.getElementById("copyWrongBtn");
+    const restartBtn = document.getElementById("restartBtn");
+
+    function normalize(str) {
+      return String(str).toLowerCase().replace(/\s+/g, "");
+    }
+
+    function parseData(text) {
+      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+      const items = [];
+
+      for (const line of lines) {
+        let parts = line.split(/\t+/);
+        if (parts.length < 2) {
+          parts = line.split(/ {2,}/);
+        }
+        if (parts.length < 2) continue;
+        const word = parts[0].trim();
+        const meaning = parts.slice(1).join(" ").trim();
+        if (!word || !meaning) continue;
+        items.push({ word, meaning });
+      }
+      return items;
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    loadBtn.addEventListener("click", () => {
+      const text = dataInput.value;
+      const items = parseData(text);
+      if (items.length === 0) {
+        wordCountInfo.textContent = "⚠️ 인식된 단어가 없습니다. 엑셀에서 다시 복사해 붙여넣어 주세요.";
+        return;
+      }
+      allWords = items;
+      wordCountInfo.textContent = `✅ ${allWords.length}개의 단어를 불러왔어요.`;
+      if (allWords.length < Number(questionCountInput.value)) {
+        questionCountInput.value = allWords.length;
+      }
+    });
+
+    function startQuiz() {
+      if (allWords.length === 0) {
+        alert("먼저 위에 단어를 붙여넣고 '단어 불러오기'를 눌러주세요.");
+        return;
+      }
+      let n = Number(questionCountInput.value) || 30;
+      if (n > allWords.length) n = allWords.length;
+
+      total = n;
+      score = 0;
+      currentIndex = 0;
+      awaitingAnswer = true;
+      wrongAnswers = [];
+
+      quizList = shuffle([...allWords]).slice(0, n);
+
+      resultCard.style.display = "none";
+      quizCard.style.display = "block";
+
+      showCurrentQuestion();
+    }
+
+    function createOptions(correctItem) {
+      const meanings = [correctItem.meaning];
+      const others = shuffle(allWords.filter(w => w.meaning !== correctItem.meaning));
+
+      for (const item of others) {
+        if (meanings.length >= NUM_CHOICES) break;
+        meanings.push(item.meaning);
+      }
+
+      const unique = Array.from(new Set(meanings));
+      return shuffle(unique).slice(0, NUM_CHOICES);
+    }
+
+    function showCurrentQuestion() {
+      if (currentIndex >= total) {
+        endQuiz();
+        return;
+      }
+
+      const item = quizList[currentIndex];
+      questionWord.textContent = item.word;
+      feedbackArea.textContent = "";
+      feedbackArea.className = "feedback";
+
+      progressBadge.textContent = `문제 ${currentIndex + 1} / ${total}`;
+      scoreInfo.textContent = `현재 점수: ${score} / ${total}`;
+
+      const options = createOptions(item);
+      optionsContainer.innerHTML = "";
+      awaitingAnswer = true;
+      nextBtn.disabled = true;
+
+      options.forEach(optionText => {
+        const btn = document.createElement("button");
+        btn.className = "choice-btn";
+        btn.textContent = optionText;
+        btn.onclick = () => handleChoiceClick(btn, optionText, item);
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    function handleChoiceClick(clickedBtn, selectedMeaning, item) {
+      if (!awaitingAnswer) return;
+      awaitingAnswer = false;
+
+      const normalizedSelected = normalize(selectedMeaning);
+      const normalizedCorrect = normalize(item.meaning);
+
+      const allButtons = optionsContainer.querySelectorAll(".choice-btn");
+      allButtons.forEach(btn => {
+        btn.classList.add("disabled");
+        const btnText = btn.textContent;
+        const isCorrectBtn = normalize(btnText) === normalizedCorrect;
+        if (isCorrectBtn) {
+          btn.classList.add("correct");
+        }
+      });
+
+      if (normalizedSelected === normalizedCorrect) {
+        clickedBtn.classList.add("correct");
+        feedbackArea.textContent = "✅ 정답!";
+        feedbackArea.className = "feedback correct";
+        score += 1;
+      } else {
+        clickedBtn.classList.add("wrong");
+        feedbackArea.textContent = `❌ 오답! 정답: ${item.meaning}`;
+        feedbackArea.className = "feedback incorrect";
+
+        wrongAnswers.push({
+          word: item.word,
+          correct: item.meaning,
+          selected: selectedMeaning
+        });
+      }
+
+      scoreInfo.textContent = `현재 점수: ${score} / ${total}`;
+      nextBtn.disabled = false;
+    }
+
+    function nextQuestion() {
+      if (awaitingAnswer) return;
+      currentIndex += 1;
+      showCurrentQuestion();
+    }
+
+    function buildWrongNoteText() {
+      if (wrongAnswers.length === 0) return "";
+      const lines = wrongAnswers.map((w, idx) =>
+        `${idx + 1}. ${w.word} - 정답: ${w.correct} / 내 답: ${w.selected}`
+      );
+      return lines.join("\n");
+    }
+
+    function renderWrongList() {
+      if (wrongAnswers.length === 0) {
+        wrongNoteContainer.style.display = "none";
+        wrongList.innerHTML = "";
+        return;
+      }
+      wrongNoteContainer.style.display = "block";
+      wrongList.innerHTML = "";
+
+      wrongAnswers.forEach((w, idx) => {
+        const div = document.createElement("div");
+        div.className = "wrong-item";
+        div.innerHTML = `<span class="word">${idx + 1}. ${w.word}</span> — 
+          <span class="correct">정답: ${w.correct}</span>
+          <span class="selected"> · 내 답: ${w.selected}</span>`;
+        wrongList.appendChild(div);
+      });
+    }
+
+    function endQuiz() {
+      quizCard.style.display = "none";
+      resultCard.style.display = "block";
+
+      const rate = total > 0 ? (score / total) * 100 : 0;
+      let comment = "";
+      if (rate >= 80) comment = "완전 익숙한 세트 같아요! 😎";
+      else if (rate >= 50) comment = "절반 이상 맞췄어요. 한 번 더 돌리면 완전 내 것이 될 듯! 💪";
+      else comment = "조금 어려웠죠? 틀린 단어들 위주로 다시 외워보면 좋아요 📖";
+
+      resultText.textContent = `점수: ${score} / ${total} (정답률 ${rate.toFixed(1)}%) · ${comment}`;
+
+      renderWrongList();
+    }
+
+    startBtn.addEventListener("click", startQuiz);
+    nextBtn.addEventListener("click", nextQuestion);
+
+    copyWrongBtn.addEventListener("click", async () => {
+      const text = buildWrongNoteText();
+      if (!text) {
+        alert("오답이 없습니다!");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        alert("오답노트를 클립보드에 복사했어요. 메모장이나 노션에 붙여넣으세요 ✏️");
+      } catch (e) {
+        alert("클립보드 복사에 실패했어요. 브라우저 권한 문제일 수 있어요.");
+      }
+    });
+
+    restartBtn.addEventListener("click", () => {
+      if (allWords.length === 0) return;
+      startQuiz();
+    });
+  </script>
+</body>
+</html>
